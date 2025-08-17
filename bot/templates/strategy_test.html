@@ -1,0 +1,15 @@
+<!-- This file is intentionally left blank. Use the main strategy_test.html in the root templates directory. -->
+      let details = '';
+      let sample = null, win = null, rr = null;
+      try {
+        const res = JSON.parse(sig.result.replace(/'/g, '"'));
+        sample = parseInt(res.sample_size) || 0;
+        win = parseFloat(res.win_ratio) || 0;
+        rr = parseFloat(res.risk_reward) || 0;
+        details = `<br><small>Sample Size: ${sample}, Win Ratio: ${win}, Risk/Reward: ${rr}</small>`;
+      } catch (e) {}
+      ul.innerHTML += `<li><b>${sig.symbol}</b>: <span>${sig.result}</span> <span class="text-muted">(${sig.created_at})</span>${details}</li>`;
+    });
+  });
+</script>
+{% endblock %}

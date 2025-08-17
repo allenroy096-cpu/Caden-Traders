@@ -1,0 +1,7 @@
+{
+  "error": false,
+  "data": [
+    {"symbol": "NIFTY", "expiry": "2025-08-28", "strike": 16500, "option_type": "CE"},
+    {"symbol": "NIFTY", "expiry": "2025-08-28", "strike": 16500, "option_type": "PE"}
+  ]
+}

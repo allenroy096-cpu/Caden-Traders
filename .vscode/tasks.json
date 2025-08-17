@@ -1,0 +1,27 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Record NIFTY Options Live Data",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"record_nifty_options_live.py"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Record NIFTY Options Live Data",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"record_nifty_options_live.py"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

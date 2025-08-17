@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}ML Prediction{% endblock %}
+{% block content %}
+<h1 class="mb-4">ML Price Prediction (Next Day)</h1>
+<div class="card mb-4">
+  <div class="card-body">
+    <form id="ml-predict-form" class="mb-3" style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;">
+      <label>Symbol
+        <input type="text" id="ml-symbol" value="HDFCBANK" class="form-control" style="width: 120px;">
+      </label>
+      <button type="submit" class="btn btn-primary">Predict</button>
+    </form>
+    <div id="ml-predict-result" style="margin-top: 24px;"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+// Handle ML prediction form and results
+document.getElementById('ml-predict-form').onsubmit = function(e) {
+  e.preventDefault();
+  const symbol = document.getElementById('ml-symbol').value.trim();
+  const resultDiv = document.getElementById('ml-predict-result');
+  resultDiv.innerHTML = 'Predicting...';
+  fetch('/api/predict', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({symbol})
+  })
+    .then(r => r.json())
+    .then(data => {
+      if(data.error) {
+        resultDiv.innerHTML = `<span class='text-danger'>${data.error}</span>`;
+        return;
+      }
+      resultDiv.innerHTML = `<b>${data.symbol}</b> Last Close: <b>₹${data.last_close.toFixed(2)}</b> | Predicted Next Close: <b>₹${data.predicted_next_close.toFixed(2)}</b>`;
+    });
+  return false;
+};
+</script>
+{% endblock %}

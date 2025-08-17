@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1 class="mb-4">Dashboard</h1>
+<div class="row">
+  <div class="col-md-6">
+    <div class="card mb-4">
+      <div class="card-header">Portfolio Analytics</div>
+      <div class="card-body" id="portfolio-metrics"></div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card mb-4">
+      <div class="card-header">Portfolio Table (Basic)</div>
+      <div class="card-body">
+        <table class="table table-sm table-striped w-auto" id="dashboard-table">
+          <thead>
+            <tr>
+              <th>Name</th><th>Price</th><th>Qty</th><th>Invested</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="sector-tables"></div>
+<div class="card mb-4">
+  <div class="card-header">Asset Allocation</div>
+  <div class="card-body">
+  <canvas id="chart-asset" height="150" width="150" style="max-width:150px; max-height:150px;"></canvas>
+  </div>
+</div>
+<div class="card mb-4">
+  <div class="card-header">Portfolio Returns Heatmap</div>
+  <div class="card-body">
+    <canvas id="chart-heatmap" height="120"></canvas>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Fetch and render dashboard analytics and charts
+fetch('/api/stocks')
+  .then(r => r.json())
+  .then(data => {
+    // Portfolio metrics
+    const pm = data.portfolio_metrics;
+    document.getElementById('portfolio-metrics').innerHTML = `
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item">Volatility: <b>${(pm.volatility*100).toFixed(2)}%</b></li>
+        <li class="list-group-item">Avg Return: <b>${(pm.avg_return*100).toFixed(2)}%</b></li>
+        <li class="list-group-item">Sharpe Ratio: <b>${pm.sharpe.toFixed(2)}</b></li>
+        <li class="list-group-item">Max Drawdown: <b>${(pm.max_drawdown*100).toFixed(2)}%</b></li>
+        <li class="list-group-item">Total Investment: <b>₹${pm.total_investment.toLocaleString()}</b></li>
+      </ul>`;
+    // Economic metrics
+    const em = data.economic_metrics;
+    document.getElementById('economic-metrics').innerHTML = `
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item">NIFTY: <b>${em.nifty_index}</b> (${(em.nifty_change_pct*100).toFixed(2)}%)</li>
+        <li class="list-group-item">Inflation: <b>${em.inflation}%</b></li>
+        <li class="list-group-item">Interest Rate: <b>${em.interest_rate}%</b></li>
+        <li class="list-group-item">GDP Growth: <b>${em.gdp_growth}%</b></li>
+      </ul>`;
+    // Portfolio performance chart
+    const stocks = data.stocks;
+    const perfLabels = stocks.map(s => s.name);
+    const perfData = stocks.map(s => s.avg_return*100);
+    new Chart(document.getElementById('chart-performance').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: perfLabels,
+        datasets: [{
+          label: 'Avg Return (%)',
+          data: perfData,
+          backgroundColor: 'rgba(54, 162, 235, 0.5)'
+        }]
+      },
+      options: {responsive: true, plugins: {legend: {display: false}}}
+    });
+  // Sector allocation chart
+  const sectorMapChart = {};
+  stocks.forEach(s => { sectorMapChart[s.sector] = (sectorMapChart[s.sector]||0) + s.sector_weightage_pct; });
+  new Chart(document.getElementById('chart-sector').getContext('2d'), {
+      type: 'pie',
+      data: {
+        labels: Object.keys(sectorMapChart),
+        datasets: [{
+          label: 'Sector Allocation (%)',
+          data: Object.values(sectorMapChart),
+          backgroundColor: [
+            '#007bff','#28a745','#ffc107','#dc3545','#6f42c1','#fd7e14','#20c997','#343a40'
+          ]
+        }]
+      },
+      options: {responsive: true}
+    });
+    // Asset allocation donut chart
+    const assetMap = {};
+    stocks.forEach(s => { assetMap[s.asset_class] = (assetMap[s.asset_class]||0) + s.asset_weightage_pct; });
+    new Chart(document.getElementById('chart-asset').getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(assetMap),
+        datasets: [{
+          label: 'Asset Allocation (%)',
+          data: Object.values(assetMap),
+          backgroundColor: [
+            '#007bff','#28a745','#ffc107','#dc3545','#6f42c1','#fd7e14','#20c997','#343a40'
+          ]
+        }]
+      },
+      options: {responsive: true}
+    });
+
+    // Sector tables with all details and sector metrics
+    const sectorMapTable = {};
+    stocks.forEach(s => {
+      if (!sectorMapTable[s.sector]) sectorMapTable[s.sector] = [];
+      sectorMapTable[s.sector].push(s);
+    });
+    const sectorDiv = document.getElementById('sector-tables');
+    sectorDiv.innerHTML = '';
+    Object.entries(sectorMapTable).forEach(([sector, sectorStocks]) => {
+      // Calculate sector metrics
+      const peAvg = (sectorStocks.reduce((a, s) => a + (s.pe || 0), 0) / sectorStocks.filter(s => s.pe).length) || 0;
+      const divYieldAvg = (sectorStocks.reduce((a, s) => a + (s.dividend_yield || 0), 0) / sectorStocks.filter(s => s.dividend_yield).length) || 0;
+      const sectorWeight = sectorStocks.reduce((a, s) => a + (s.sector_weightage_pct || 0), 0);
+      sectorDiv.innerHTML += `
+        <div class="card mb-4">
+          <div class="card-header bg-light"><b>${sector} Sector</b> &mdash; <span class="text-muted">P/E Avg: ${peAvg.toFixed(2)}, Div. Yield Avg: ${divYieldAvg.toFixed(2)}%, Sector Weight: ${sectorWeight.toFixed(2)}%</span></div>
+          <div class="card-body p-2">
+            <div style="overflow-x:auto">
+            <table class="table table-sm table-bordered">
+              <thead>
+                <tr>
+                  <th>Name</th><th>Symbol</th><th>P/E</th><th>Div. Yield</th><th>Price</th><th>Qty</th><th>Invested</th><th>Return %</th><th>Weight %</th><th>Sector Weight %</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sectorStocks.map(s => `
+                  <tr>
+                    <td>${s.name}</td><td>${s.symbol}</td><td>${s.pe ?? '-'}</td><td>${s.dividend_yield ?? '-'}</td><td>₹${s.current_price?.toLocaleString?.() ?? '-'}</td><td>${s.quantity}</td><td>₹${s.total_investment.toLocaleString()}</td><td>${(s.avg_return*100).toFixed(2)}%</td><td>${s.weight_pct.toFixed(2)}%</td><td>${s.sector_weightage_pct.toFixed(2)}%</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    // Portfolio returns heatmap (by stock, color by return)
+    const heatmapCtx = document.getElementById('chart-heatmap').getContext('2d');
+    const heatmapData = {
+      labels: stocks.map(s => s.name),
+      datasets: [{
+        label: 'Return %',
+        data: stocks.map(s => s.avg_return*100),
+        backgroundColor: stocks.map(s => {
+          const v = s.avg_return*100;
+          // Green for positive, red for negative, yellow for near zero
+          if(v > 5) return '#28a745';
+          if(v < -5) return '#dc3545';
+          return '#ffc107';
+        })
+      }]
+    };
+    new Chart(heatmapCtx, {
+      type: 'bar',
+      data: heatmapData,
+      options: {
+        indexAxis: 'y',
+        plugins: {legend: {display: false}},
+        scales: {x: {min: Math.min(...heatmapData.datasets[0].data,0), max: Math.max(...heatmapData.datasets[0].data,0)}}
+      }
+    });
+    // Portfolio table
+    const tbody = document.querySelector('#dashboard-table tbody');
+    tbody.innerHTML = '';
+    stocks.forEach(s => {
+      tbody.innerHTML += `<tr>
+        <td>${s.name}</td><td>${s.symbol}</td><td>${s.sector}</td><td>${s.asset_class}</td><td>${(s.avg_return*100).toFixed(2)}%</td><td>${s.weight_pct.toFixed(2)}%</td>
+      </tr>`;
+    });
+  });
+fetch('/api/stocks')
+  .then(r => r.json())
+  .then(data => {
+    // Portfolio metrics
+    const pm = data.portfolio_metrics;
+    document.getElementById('portfolio-metrics').innerHTML = `
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item">Volatility: <b>${(pm.volatility*100).toFixed(2)}%</b></li>
+        <li class="list-group-item">Avg Return: <b>${(pm.avg_return*100).toFixed(2)}%</b></li>
+        <li class="list-group-item">Sharpe Ratio: <b>${pm.sharpe.toFixed(2)}</b></li>
+        <li class="list-group-item">Max Drawdown: <b>${(pm.max_drawdown*100).toFixed(2)}%</b></li>
+        <li class="list-group-item">Total Investment: <b>₹${pm.total_investment.toLocaleString()}</b></li>
+      </ul>`;
+    // Economic metrics
+    const em = data.economic_metrics;
+    document.getElementById('economic-metrics').innerHTML = `
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item">NIFTY: <b>${em.nifty_index}</b> (${(em.nifty_change_pct*100).toFixed(2)}%)</li>
+        <li class="list-group-item">Inflation: <b>${em.inflation}%</b></li>
+        <li class="list-group-item">Interest Rate: <b>${em.interest_rate}%</b></li>
+        <li class="list-group-item">GDP Growth: <b>${em.gdp_growth}%</b></li>
+      </ul>`;
+    // Portfolio performance chart
+    const stocks = data.stocks;
+    const perfLabels = stocks.map(s => s.name);
+    const perfData = stocks.map(s => s.avg_return*100);
+    new Chart(document.getElementById('chart-performance').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: perfLabels,
+        datasets: [{
+          label: 'Avg Return (%)',
+          data: perfData,
+          backgroundColor: 'rgba(54, 162, 235, 0.5)'
+        }]
+      },
+      options: {responsive: true, plugins: {legend: {display: false}}}
+    });
+    // Sector allocation chart
+    const sectorMap = {};
+    stocks.forEach(s => { sectorMap[s.sector] = (sectorMap[s.sector]||0) + s.sector_weightage_pct; });
+    new Chart(document.getElementById('chart-sector').getContext('2d'), {
+      type: 'pie',
+      data: {
+        labels: Object.keys(sectorMap),
+        datasets: [{
+          label: 'Sector Allocation (%)',
+          data: Object.values(sectorMap),
+          backgroundColor: [
+            '#007bff','#28a745','#ffc107','#dc3545','#6f42c1','#fd7e14','#20c997','#343a40'
+          ]
+        }]
+      },
+      options: {responsive: true}
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Insights{% endblock %}
+{% block content %}
+<h1 class="mb-4">Opportunities & Threats</h1>
+<div class="card mb-4">
+  <div class="card-body">
+    <ul id="insights-list" style="margin:0; padding-left: 18px;"></ul>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+// Fetch and render insights
+fetch('/api/stocks')
+  .then(r => r.json())
+  .then(data => {
+    const insights = data.insights || [];
+    const ul = document.getElementById('insights-list');
+    ul.innerHTML = '';
+    if(insights.length === 0) {
+      ul.innerHTML = '<li>No insights available.</li>';
+      return;
+    }
+    insights.forEach(ins => {
+      ul.innerHTML += `<li><b>${ins.symbol}</b>: <span class="${ins.type === 'opportunity' ? 'text-success' : 'text-danger'}">${ins.message}</span></li>`;
+    });
+  });
+</script>
+{% endblock %}

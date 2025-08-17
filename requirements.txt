@@ -1,0 +1,13 @@
+yfinance
+requests
+beautifulsoup4
+pandas
+sqlalchemy
+psycopg2-binary
+scikit-learn
+transformers
+spacy
+celery
+flask
+python-dotenv
+feedparser

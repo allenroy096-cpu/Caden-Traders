@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Dynamic Instrument Test{% endblock %}
+{% block content %}
+<h1 class="mb-4">Dynamic Instrument Test</h1>
+<div class="card mb-4">
+  <div class="card-body">
+    <form id="instrument-test-form" class="mb-3">
+      <div class="mb-2">
+        <label for="test-type" class="form-label">Test Type</label>
+        <select id="test-type" class="form-select" name="test_type">
+          <option value="darvas">Darvas Box</option>
+          <!-- Add more test types here -->
+        </select>
+      </div>
+      <div id="darvas-params">
+        <div class="mb-2">
+          <label for="darvas-sample-size" class="form-label">Sample Size</label>
+          <input type="number" class="form-control" id="darvas-sample-size" name="sample_size" value="20" min="1" max="50">
+        </div>
+        <div class="mb-2">
+          <label for="darvas-box-days" class="form-label">Box Days</label>
+          <input type="number" class="form-control" id="darvas-box-days" name="box_days" value="30" min="5" max="90">
+        </div>
+        <div class="mb-2">
+          <label for="darvas-time-frame" class="form-label">Time Frame</label>
+          <select class="form-select" id="darvas-time-frame" name="time_frame">
+            <option value="1d" selected>1 Day</option>
+            <option value="1wk">1 Week</option>
+            <option value="1mo">1 Month</option>
+          </select>
+        </div>
+      </div>
+      <!-- Future test parameter blocks can go here -->
+      <button type="submit" class="btn btn-primary">Run Test</button>
+    </form>
+    <div id="instrument-progress" style="margin-bottom:10px; color: #007bff; display:none;">Running test, please wait...</div>
+    <div id="instrument-result" style="display:none;">
+      <h5>Sample Results</h5>
+      <table class="table table-bordered" id="instrument-table">
+        <thead class="table-light">
+          <tr id="instrument-table-header"></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="instrument-summary"></div>
+    </div>
+    <div id="instrument-error" class="text-danger" style="display:none;"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const form = document.getElementById('instrument-test-form');
+const progress = document.getElementById('instrument-progress');
+const result = document.getElementById('instrument-result');
+const table = document.getElementById('instrument-table').querySelector('tbody');
+const tableHeader = document.getElementById('instrument-table-header');
+const summary = document.getElementById('instrument-summary');
+const errorDiv = document.getElementById('instrument-error');
+const testTypeSelect = document.getElementById('test-type');
+const darvasParams = document.getElementById('darvas-params');
+
+// Show/hide parameter blocks based on test type
+function updateParamBlocks() {
+  darvasParams.style.display = testTypeSelect.value === 'darvas' ? 'block' : 'none';
+  // Add more as you add test types
+}
+testTypeSelect.onchange = updateParamBlocks;
+updateParamBlocks();
+
+form.onsubmit = function(e) {
+  e.preventDefault();
+  progress.style.display = 'block';
+  result.style.display = 'none';
+  errorDiv.style.display = 'none';
+  table.innerHTML = '';
+  summary.textContent = '';
+  const formData = new FormData(form);
+  const params = Object.fromEntries(formData.entries());
+  fetch('/api/instrument_test', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(params)
+  })
+    .then(r => r.json())
+    .then(data => {
+      progress.style.display = 'none';
+      if (data.error) {
+        errorDiv.textContent = data.error;
+        errorDiv.style.display = 'block';
+        return;
+      }
+      result.style.display = 'block';
+      // Dynamic table header
+      tableHeader.innerHTML = '';
+      if (data.columns) {
+        data.columns.forEach(col => {
+          const th = document.createElement('th');
+          th.textContent = col;
+          tableHeader.appendChild(th);
+        });
+      }
+      (data.sample || []).forEach(row => {
+        const tr = document.createElement('tr');
+        if (data.columns) {
+          tr.innerHTML = data.columns.map(col => row[col] !== undefined ? row[col] : '').join('</td><td>');
+        }
+        table.appendChild(tr);
+      });
+      summary.textContent = data.summary || '';
+    })
+    .catch(err => {
+      progress.style.display = 'none';
+      errorDiv.textContent = 'Error running test.';
+      errorDiv.style.display = 'block';
+    });
+};
+</script>
+{% endblock %}

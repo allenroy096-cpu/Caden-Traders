@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Strategy Test{% endblock %}
+{% block content %}
+<h1 class="mb-4">Strategy Test Results</h1>
+<div class="card mb-4">
+	<div class="card-body">
+		<table class="table table-bordered mb-4" id="summary-table" style="max-width:500px;">
+			<thead class="table-light">
+				<tr>
+					<th>Metric</th>
+					<th>Value</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr><td>Sample Size</td><td id="summary-sample-size">-</td></tr>
+				<tr><td>Win Ratio</td><td id="summary-win-ratio">-</td></tr>
+				<tr><td>Risk/Reward</td><td id="summary-risk-reward">-</td></tr>
+			</tbody>
+		</table>
+		<ul id="strategy-list" style="margin:0; padding-left: 18px;"></ul>
+	</div>
+</div>
+{% endblock %}
+
+<hr>
+<div class="card mb-4">
+	<div class="card-body">
+		<h2>Darvas Box Test</h2>
+		<button id="darvas-run-btn" class="btn btn-primary mb-2">Run Darvas Box Test</button>
+		<div id="darvas-progress" style="margin-bottom:10px; color: #007bff; display:none;">Running Darvas test, please wait...</div>
+		<div id="darvas-result" style="display:none;">
+			<h5>Sample Results (20 stocks):</h5>
+			<table class="table table-bordered" id="darvas-table">
+				<thead class="table-light">
+					<tr>
+						<th>Symbol</th><th>Box High</th><th>Box Low</th><th>Last Price</th><th>Action</th>
+					</tr>
+				</thead>
+				<tbody></tbody>
+			</table>
+			<div id="darvas-summary"></div>
+		</div>
+		<div id="darvas-error" class="text-danger" style="display:none;"></div>
+	</div>
+</div>
+{% block scripts %}
+<script>
+// Fetch and render strategy test results with extra details
+fetch('/api/strategy_signals')
+	.then(r => r.json())
+	.then(data => {
+		const signals = data.strategy_signals || [];
+		const summary = data.summary_metrics || {};
+		document.getElementById('summary-sample-size').textContent = summary.sample_size ?? '-';
+		document.getElementById('summary-win-ratio').textContent = summary.win_ratio ?? '-';
+		document.getElementById('summary-risk-reward').textContent = summary.risk_reward ?? '-';
+		const ul = document.getElementById('strategy-list');
+		ul.innerHTML = '';
+		if(signals.length === 0) {
+			ul.innerHTML = '<li>No strategy test results available.</li>';
+			return;
+		}
+		signals.forEach(sig => {
+			const li = document.createElement('li');
+			li.textContent = `${sig.symbol}: ${sig.result} (${sig.created_at})`;
+			ul.appendChild(li);
+		});
+	});
+// Darvas Box Test logic (independent)
+const darvasBtn = document.getElementById('darvas-run-btn');
+const darvasProgress = document.getElementById('darvas-progress');
+const darvasResult = document.getElementById('darvas-result');
+const darvasTable = document.getElementById('darvas-table').querySelector('tbody');
+const darvasSummary = document.getElementById('darvas-summary');
+const darvasError = document.getElementById('darvas-error');
+
+darvasBtn.onclick = function() {
+	darvasProgress.style.display = 'block';
+	darvasResult.style.display = 'none';
+	darvasError.style.display = 'none';
+	darvasTable.innerHTML = '';
+	darvasSummary.textContent = '';
+	fetch('/api/darvas_test')
+		.then(r => r.json())
+		.then(data => {
+			darvasProgress.style.display = 'none';
+			if (data.error) {
+				darvasError.textContent = data.error;
+				darvasError.style.display = 'block';
+				return;
+			}
+			darvasResult.style.display = 'block';
+			(data.sample || []).forEach(row => {
+				const tr = document.createElement('tr');
+				tr.innerHTML = `<td>${row.symbol}</td><td>${row.box_high.toFixed(2)}</td><td>${row.box_low.toFixed(2)}</td><td>${row.last_price.toFixed(2)}</td><td>${row.action}</td>`;
+				darvasTable.appendChild(tr);
+			});
+			darvasSummary.textContent = `Total stocks tested: ${data.total_selected}, With valid box: ${data.total_with_box}`;
+		})
+		.catch(err => {
+			darvasProgress.style.display = 'none';
+			darvasError.textContent = 'Error running Darvas test.';
+			darvasError.style.display = 'block';
+		});
+};
+</script>
+{% endblock %}

@@ -1,0 +1,133 @@
+<!-- DEBUG: portfolio.html is being rendered -->
+{% extends 'base.html' %}
+{% block title %}Portfolio{% endblock %}
+{% block content %}
+<h1 class="mb-4">Portfolio</h1>
+<!-- Summary Cards -->
+<div class="row mb-4">
+  <div class="col-md-3 mb-2">
+    <div class="card text-center h-100">
+      <div class="card-body">
+        <div class="text-muted small">Invested</div>
+        <div class="h4" id="summary-invested">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 mb-2">
+    <div class="card text-center h-100">
+      <div class="card-body">
+        <div class="text-muted small">Present value</div>
+        <div class="h4" id="summary-present-value">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 mb-2">
+    <div class="card text-center h-100">
+      <div class="card-body">
+        <div class="text-muted small">Unrealized P&amp;L</div>
+        <div class="h4" id="summary-unrealized-pl">-</div>
+        <div class="small" id="summary-unrealized-pl-pct"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 mb-2">
+    <div class="card text-center h-100">
+      <div class="card-body">
+        <div class="text-muted small">XIRR</div>
+        <div class="h4" id="summary-xirr">-</div>
+        <a href="#" class="small">View portfolio XIRR</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab Navigation -->
+<ul class="nav nav-tabs mb-3" id="portfolioTabs" role="tablist" style="--bs-nav-link-color: #1a56db; --bs-nav-link-active-color: #fff; --bs-nav-tabs-link-active-bg: #1a56db;">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" style="color:#1a56db;">Overview</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="treemap-tab" data-bs-toggle="tab" data-bs-target="#treemap" type="button" role="tab" style="color:#1a56db;">Treemap</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="insights-tab" data-bs-toggle="tab" data-bs-target="#insights" type="button" role="tab" style="color:#1a56db;">Insights</button>
+  </li>
+</ul>
+<div class="tab-content" id="portfolioTabsContent">
+  <div class="tab-pane fade show active" id="overview" role="tabpanel">
+    <!-- Portfolio charts (Account, Sectors, Stocks) -->
+    <div class="row mb-4" id="portfolio-charts-overview">
+      <div class="col-md-4 mb-3 d-flex justify-content-center">
+        <canvas id="accountChart" width="180" height="180" style="max-width:180px;max-height:180px;"></canvas>
+      </div>
+      <div class="col-md-4 mb-3 d-flex justify-content-center">
+        <canvas id="sectorChart" width="180" height="180" style="max-width:180px;max-height:180px;"></canvas>
+      </div>
+      <div class="col-md-4 mb-3 d-flex justify-content-center">
+        <canvas id="stockChart" width="180" height="180" style="max-width:180px;max-height:180px;"></canvas>
+      </div>
+    </div>
+    <div id="portfolio-sector-bar" class="mb-3"></div>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="small text-muted" id="portfolio-last-updated"></div>
+      <a href="#" class="small" id="portfolio-download-xlsx">Download: XLSX</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered align-middle" id="portfolio-holdings-table">
+        <thead class="table-light">
+          <tr>
+            <th>Symbol</th>
+            <th>Name</th>
+            <th>Sector</th>
+            <th>Qty.</th>
+            <th>Buy avg.</th>
+            <th>Buy value</th>
+            <th>LTP</th>
+            <th>Present value</th>
+            <th>P&amp;L</th>
+            <th>P&amp;L chg.</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="tab-pane fade" id="treemap" role="tabpanel">
+    <div class="row mb-4" id="portfolio-charts-treemap">
+      <div class="col-md-12 mb-3 d-flex justify-content-center">
+        <canvas id="treemapSectorChart" width="400" height="220" style="max-width:400px;max-height:220px;"></canvas>
+      </div>
+    </div>
+    <!-- Sector-wise split-up tables moved here -->
+    <div id="portfolio-sector-tables" class="mt-4"></div>
+  </div>
+  <div class="tab-pane fade" id="insights" role="tabpanel">
+    <div class="row">
+      <div class="col-md-12 mb-3">
+        <div id="portfolio-advanced-insights"></div>
+      </div>
+      <div class="col-md-4">
+        <div class="card mb-3">
+          <div class="card-header bg-success text-white">Trade Opportunities</div>
+          <div class="card-body p-2">
+            <ul id="insights-opportunities" class="list-group list-group-flush small"></ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card mb-3">
+          <div class="card-header bg-danger text-white">Risks</div>
+          <div class="card-body p-2">
+            <ul id="insights-risks" class="list-group list-group-flush small"></ul>
+          </div>
+        </div>
+      </div>
+      <!-- SMA Strategy Signals section removed -->
+    </div>
+  </div>
+{% endblock %}
+{% block scripts %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/portfolio.js') }}"></script>
+{% endblock %}
