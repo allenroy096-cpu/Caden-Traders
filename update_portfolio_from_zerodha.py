@@ -76,8 +76,7 @@ print("\nAfter logging in, copy the request_token from the URL and paste it belo
 print('request_token = "PASTE_YOUR_NEW_TOKEN_HERE"')
 
 # --- UNCOMMENT BELOW AND PASTE YOUR TOKEN TO RUN THE UPDATE ---
-
-request_token = "yAQMvDCAwxDuA9AaDRq5RLO06gSuFIK5"  # Paste your fresh request_token here
+request_token = "Sb175dAbKLyhdVWJC2rTXi2OuXQyiurZ"  # Paste your fresh request_token here
 data = kite.generate_session(request_token, api_secret=api_secret)
 kite.set_access_token(data["access_token"])
 holdings = kite.holdings()
