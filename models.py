@@ -15,7 +15,9 @@ class Stock(Base):
     quantity = Column(Integer)
     # Add more fields as needed
 
-# PostgreSQL connection string (edit host/db as needed)
-engine = create_engine('postgresql://nifty_user:nifty_pass@localhost/nifty_db')
+# Use DATABASE_URL from environment variable for cloud deployment, fallback to local for dev
+import os
+db_url = os.environ.get('DATABASE_URL', 'postgresql://nifty_user:nifty_pass@localhost/nifty_db')
+engine = create_engine(db_url)
 SessionLocal = sessionmaker(bind=engine)
 Base.metadata.create_all(engine)
