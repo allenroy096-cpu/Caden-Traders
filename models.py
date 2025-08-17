@@ -17,7 +17,9 @@ class Stock(Base):
 
 # Use DATABASE_URL from environment variable for cloud deployment, fallback to local for dev
 import os
-db_url = os.environ.get('DATABASE_URL', 'postgresql://nifty_user:nifty_pass@localhost/nifty_db')
+db_url = os.environ.get('DATABASE_URL')
+if not db_url:
+    raise RuntimeError("DATABASE_URL environment variable is not set. Please set it to your PostgreSQL connection string.")
 engine = create_engine(db_url)
 SessionLocal = sessionmaker(bind=engine)
 Base.metadata.create_all(engine)
