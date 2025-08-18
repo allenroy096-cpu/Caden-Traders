@@ -52,7 +52,6 @@ def fetch_sector_fallback(symbol):
 	return 'Unknown'
 
 
-
 from kiteconnect import KiteConnect
 import os
 from dotenv import load_dotenv
@@ -71,7 +70,7 @@ api_secret = os.getenv("KITE_API_SECRET")
 
 # Initialize KiteConnect after api_key and api_secret are defined
 kite = KiteConnect(api_key=api_key)
-print("Login URL:", kite.login_url())
+import os
 print("\nAfter logging in, copy the request_token from the URL and paste it below as:")
 print('request_token = "PASTE_YOUR_NEW_TOKEN_HERE"')
 
