@@ -4,68 +4,38 @@
 <h1 class="mb-4">Trading Bot Results</h1>
 <div class="card mb-4">
   <div class="card-body">
-    <h4>Watchlist</h4>
+    <h4>Consolidated Watchlist & Shortlist</h4>
     <div class="table-responsive mb-4">
-      <table class="table table-sm table-bordered" id="watchlist-table">
-        <thead><tr><th>Symbol</th><th>Added On</th><th>Reason</th></tr></thead>
+      <table class="table table-sm table-bordered" id="consolidated-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Symbol</th>
+            <th>Added/Start</th>
+            <th>End/Reason</th>
+          </tr>
+        </thead>
         <tbody></tbody>
       </table>
     </div>
-    <canvas id="watchlist-chart" height="120"></canvas>
-    <hr>
-    <h4>Shortlisted Stocks</h4>
-    <div class="table-responsive mb-4">
-      <table class="table table-sm table-bordered" id="shortlist-table">
-        <thead><tr><th>Symbol</th><th>Consolidation Start</th><th>Consolidation End</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <canvas id="shortlist-chart" height="120"></canvas>
   </div>
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Fetch and render watchlist
-fetch('/api/watchlist')
-  .then(r => r.json())
-  .then(data => {
-    const tbody = document.querySelector('#watchlist-table tbody');
-    tbody.innerHTML = '';
-    data.forEach(row => {
-      tbody.innerHTML += `<tr><td>${row.symbol}</td><td>${row.added_on}</td><td>${row.reason}</td></tr>`;
-    });
-    // Example: Chart of watchlist additions by date
-    const dateCounts = {};
-    data.forEach(row => { dateCounts[row.added_on] = (dateCounts[row.added_on]||0)+1; });
-    const labels = Object.keys(dateCounts);
-    const values = Object.values(dateCounts);
-    new Chart(document.getElementById('watchlist-chart').getContext('2d'), {
-      type: 'bar',
-      data: { labels, datasets: [{ label: 'Additions', data: values, backgroundColor: 'rgba(54,162,235,0.5)' }] },
-      options: { responsive: true, plugins: { legend: { display: false } } }
-    });
+// Fetch and render consolidated table (limit to 10 rows)
+Promise.all([
+  fetch('/api/watchlist').then(r => r.json()),
+  fetch('/api/shortlist').then(r => r.json())
+]).then(([watchlist, shortlist]) => {
+  const tbody = document.querySelector('#consolidated-table tbody');
+  tbody.innerHTML = '';
+  watchlist.slice(0, 5).forEach(row => {
+    tbody.innerHTML += `<tr><td>Watchlist</td><td>${row.symbol}</td><td>${row.added_on}</td><td>${row.reason}</td></tr>`;
   });
-// Fetch and render shortlist
-fetch('/api/shortlist')
-  .then(r => r.json())
-  .then(data => {
-    const tbody = document.querySelector('#shortlist-table tbody');
-    tbody.innerHTML = '';
-    data.forEach(row => {
-      tbody.innerHTML += `<tr><td>${row.symbol}</td><td>${row.consolidation_start}</td><td>${row.consolidation_end}</td></tr>`;
-    });
-    // Example: Chart of shortlisted stocks by consolidation start
-    const dateCounts = {};
-    data.forEach(row => { dateCounts[row.consolidation_start] = (dateCounts[row.consolidation_start]||0)+1; });
-    const labels = Object.keys(dateCounts);
-    const values = Object.values(dateCounts);
-    new Chart(document.getElementById('shortlist-chart').getContext('2d'), {
-      type: 'bar',
-      data: { labels, datasets: [{ label: 'Shortlists', data: values, backgroundColor: 'rgba(255,99,132,0.5)' }] },
-      options: { responsive: true, plugins: { legend: { display: false } } }
-    });
+  shortlist.slice(0, 5).forEach(row => {
+    tbody.innerHTML += `<tr><td>Shortlist</td><td>${row.symbol}</td><td>${row.consolidation_start}</td><td>${row.consolidation_end}</td></tr>`;
   });
+});
 </script>
 {% endblock %}

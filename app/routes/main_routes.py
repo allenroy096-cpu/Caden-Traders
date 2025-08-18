@@ -6,3 +6,8 @@ main = Blueprint('main', __name__)
 def index():
     return render_template('dashboard.html')
 
+
+@main.route('/portfolio')
+def portfolio():
+    return render_template('portfolio.html')
+
