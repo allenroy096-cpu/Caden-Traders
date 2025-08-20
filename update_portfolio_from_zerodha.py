@@ -1,3 +1,13 @@
+from dotenv import load_dotenv
+load_dotenv()
+
+from kiteconnect import KiteConnect
+import os
+import requests
+import yfinance as yf
+
+from models import SessionLocal, Stock, engine
+
 # Static mapping for symbol to company name (NIFTY 50 and common ETFs)
 STATIC_NAME_MAP = {
 	'ASHOKLEY': 'ASHOK LEYLAND',
@@ -35,7 +45,6 @@ STATIC_SECTOR_MAP = {
 	'WIPRO LTD': 'IT',
 	# Add more as needed
 }
-import requests
 
 # Fallback: fetch sector from Yahoo Finance public API if not found in yfinance or Zerodha
 def fetch_sector_fallback(symbol):
@@ -52,32 +61,18 @@ def fetch_sector_fallback(symbol):
 	return 'Unknown'
 
 
-from kiteconnect import KiteConnect
-import os
-from dotenv import load_dotenv
-
-from models import SessionLocal, Stock, engine
-import yfinance as yf
-
-
 # Print DB connection string for debug
 print("[DEBUG] Update script DB connection string:", engine.url)
 
 # Load environment variables
-load_dotenv()
 api_key = os.getenv("KITE_API_KEY")
 api_secret = os.getenv("KITE_API_SECRET")
+access_token = os.getenv("KITE_ACCESS_TOKEN")
 
 # Initialize KiteConnect after api_key and api_secret are defined
 kite = KiteConnect(api_key=api_key)
-import os
-print("\nAfter logging in, copy the request_token from the URL and paste it below as:")
-print('request_token = "PASTE_YOUR_NEW_TOKEN_HERE"')
+kite.set_access_token(access_token)
 
-# --- UNCOMMENT BELOW AND PASTE YOUR TOKEN TO RUN THE UPDATE ---
-request_token = "Sb175dAbKLyhdVWJC2rTXi2OuXQyiurZ"  # Paste your fresh request_token here
-data = kite.generate_session(request_token, api_secret=api_secret)
-kite.set_access_token(data["access_token"])
 holdings = kite.holdings()
 print(f"Fetched {len(holdings)} holdings from Zerodha.")
 
