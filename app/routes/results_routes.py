@@ -56,6 +56,34 @@ import os
 from kiteconnect import KiteConnect
 from dotenv import load_dotenv
 from models import SessionLocal, Stock
+try:
+    from bot.config.models import AnalysisResult
+except ImportError:
+    from config.models import AnalysisResult
+
+results = Blueprint('results', __name__)
+DB_PATH = 'trading_bot.db'
+
+@results.route('/api/analysis_results')
+def api_analysis_results():
+    session = SessionLocal()
+    try:
+        results = session.query(AnalysisResult).order_by(AnalysisResult.created_at.desc()).limit(100).all()
+        data = [
+            {
+                'id': r.id,
+                'symbol': r.symbol,
+                'result': r.result,
+                'created_at': r.created_at.isoformat() if r.created_at else None
+            }
+            for r in results
+        ]
+        return jsonify({'analysis_results': data})
+    except Exception as e:
+        print(f"[ERROR in /api/analysis_results] {e}", flush=True)
+        return jsonify({'error': 'Could not fetch analysis results'}), 500
+    finally:
+        session.close()
 
 results = Blueprint('results', __name__)
 DB_PATH = 'trading_bot.db'
