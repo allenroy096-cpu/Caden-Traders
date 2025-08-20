@@ -21,10 +21,7 @@ try:
 except Exception as e:
     print(f"[DB INIT ERROR] {e}")
 
-# --- Dynamic Instrument Test Page ---
-@app.route('/instrument_test')
-def instrument_test_page():
-    return render_template('instrument_test.html')
+
 
 # --- SINGLE FLASK APP INSTANCE AT TOP ---
 
@@ -484,124 +481,7 @@ def moving_average_crossover_backtest(symbol, short_window=20, long_window=50):
 # --- Dynamic Instrument Test Page ---
 
 
-# --- Dynamic Instrument Test API ---
-@app.route('/api/instrument_test', methods=['POST'])
-def api_instrument_test():
-    data = request.get_json(force=True)
-    test_type = data.get('test_type', 'darvas')
-    if test_type == 'darvas':
-        # Parameters
-        sample_size = int(data.get('sample_size', 20))
-        box_days = int(data.get('box_days', 30))
-        time_frame = data.get('time_frame', '1d')
-        # NIFTY 50 symbols (NSE)
-        nifty50_symbols = [
-            'ADANIPORTS', 'ASIANPAINT', 'AXISBANK', 'BAJAJ-AUTO', 'BAJFINANCE', 'BAJAJFINSV', 'BPCL',
-            'BHARTIARTL', 'BRITANNIA', 'CIPLA', 'COALINDIA', 'DIVISLAB', 'DRREDDY', 'EICHERMOT',
-            'GRASIM', 'HCLTECH', 'HDFCBANK', 'HDFCLIFE', 'HEROMOTOCO', 'HINDALCO', 'HINDUNILVR',
-            'ICICIBANK', 'INDUSINDBK', 'INFY', 'ITC', 'JSWSTEEL', 'KOTAKBANK', 'LT', 'M&M', 'MARUTI',
-            'NESTLEIND', 'NTPC', 'ONGC', 'POWERGRID', 'RELIANCE', 'SBILIFE', 'SBIN', 'SHREECEM',
-            'SUNPHARMA', 'TATACONSUM', 'TATAMOTORS', 'TATASTEEL', 'TCS', 'TECHM', 'TITAN', 'ULTRACEMCO',
-            'UPL', 'WIPRO'
-        ]
-        symbols = [s + '.NS' for s in nifty50_symbols]
-        selected = random.sample(symbols, min(50, len(symbols)))
-        from bot.config.models import SessionLocal, InstrumentTestResult
-        session = SessionLocal()
-        # Check if all results for this test already exist in DB
-        db_results = session.query(InstrumentTestResult).filter(
-            InstrumentTestResult.symbol.in_(selected),
-            InstrumentTestResult.test_type == 'darvas'
-        ).all()
-        # Only use cached results if we have enough (at least sample_size)
-        if len(db_results) >= sample_size:
-            # Prepare the response from DB
-            results = [
-                {
-                    'symbol': r.symbol,
-                    'box_high': round(r.box_high,2),
-                    'box_low': round(r.box_low,2),
-                    'last_price': round(r.last_price,2),
-                    'action': r.action
-                }
-                for r in db_results
-            ]
-            sample = random.sample(results, min(sample_size, len(results)))
-            session.close()
-            return jsonify({
-                'columns': ['symbol','box_high','box_low','last_price','action'],
-                'sample': sample,
-                'parameters': {
-                    'test_type': test_type,
-                    'sample_size': sample_size,
-                    'box_days': box_days,
-                    'time_frame': time_frame
-                },
-                'summary': f"Total stocks tested: {len(selected)}, With valid box: {len(results)} (from cache)"
-            })
 
-        # Otherwise, run the test as before
-        results = []
-        for symbol in selected:
-            try:
-                ticker = yf.Ticker(symbol)
-                hist = ticker.history(period=f'{box_days+5}{time_frame}')
-                close_prices = hist['Close'].dropna().tolist()[-box_days:]
-                if len(close_prices) < box_days:
-                    continue
-                box_high = max(close_prices)
-                box_low = min(close_prices)
-                last_price = close_prices[-1]
-                action = 'HOLD'
-                if last_price > box_high:
-                    action = 'BUY'
-                elif last_price < box_low:
-                    action = 'SELL'
-                result = {
-                    'symbol': symbol,
-                    'box_high': round(box_high,2),
-                    'box_low': round(box_low,2),
-                    'last_price': round(last_price,2),
-                    'action': action
-                }
-                results.append(result)
-                # Check for duplicate before saving
-                exists = session.query(InstrumentTestResult).filter_by(
-                    symbol=symbol,
-                    box_high=box_high,
-                    box_low=box_low,
-                    last_price=last_price,
-                    action=action,
-                    test_type='darvas'
-                ).first()
-                if not exists:
-                    db_obj = InstrumentTestResult(
-                        symbol=symbol,
-                        box_high=box_high,
-                        box_low=box_low,
-                        last_price=last_price,
-                        action=action,
-                        test_type='darvas'
-                    )
-                    session.add(db_obj)
-            except Exception:
-                continue
-        session.commit()
-        session.close()
-        sample = random.sample(results, min(sample_size, len(results)))
-        return jsonify({
-            'columns': ['symbol','box_high','box_low','last_price','action'],
-            'sample': sample,
-            'parameters': {
-                'test_type': test_type,
-                'sample_size': sample_size,
-                'box_days': box_days,
-                'time_frame': time_frame
-            },
-            'summary': f"Total stocks tested: {len(selected)}, With valid box: {len(results)}"
-        })
-    # Add more test types here in the future
-    return jsonify({'error': 'Unknown test type.'}), 400
 
 # --- MAIN ROUTES ---
 @app.route('/')

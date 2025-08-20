@@ -1,5 +1,5 @@
 
-from nsepy import get_history
+from nsepy import get_history # type: ignore
 import sqlite3
 from datetime import datetime, timedelta
 
