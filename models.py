@@ -1,10 +1,13 @@
 from dotenv import load_dotenv
 load_dotenv()
-from sqlalchemy import create_engine, Column, Integer, String, Float
+from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+
+from datetime import datetime
 Base = declarative_base()
+
 
 class Stock(Base):
     __tablename__ = 'stocks'
@@ -16,6 +19,13 @@ class Stock(Base):
     buy_price = Column(Float)
     quantity = Column(Integer)
     # Add more fields as needed
+
+# About Us table for storing about us content
+class AboutUs(Base):
+    __tablename__ = 'about_us'
+    id = Column(Integer, primary_key=True)
+    content = Column(Text)
+    last_updated = Column(DateTime, default=datetime.utcnow)
 
 # Use DATABASE_URL from environment variable for cloud deployment, fallback to local for dev
 import os
